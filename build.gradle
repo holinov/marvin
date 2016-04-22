@@ -21,7 +21,7 @@ repositories {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'org.fruttech.admbot.Program'
+        attributes 'Main-Class': 'org.fruttech.marvin.Program'
     }
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
