@@ -23,6 +23,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class AdmBot {
     static final String MAIN_BOT_CHAT = "bot_room";
@@ -37,8 +39,9 @@ public class AdmBot {
     private Skype skype;
     private KeepAliveThread keepAliveThread;
     private boolean started;
+    private Lock lock = new ReentrantLock();
 
-    public AdmBot(BotParams params) {
+    AdmBot(BotParams params) {
         this.params = params;
         server = new Server(params.httpPort);
     }
@@ -47,52 +50,58 @@ public class AdmBot {
         return chatGroups;
     }
 
-    public void run() {
-        //start skype
-        skype = new SkypeBuilder(params.username, params.password)
-                .withAllResources()
-                .build();
+    void run() {
+        lock.lock();
 
         try {
-            skype.login();
-            skype.subscribe();
+            //start skype
+            skype = new SkypeBuilder(params.username, params.password)
+                    .withAllResources()
+                    .build();
 
-            //run keepalive thread
-            keepAliveThread = new KeepAliveThread();
-            keepAliveThread.start();
+            try {
+                skype.login();
+                skype.subscribe();
 
-            skype.setVisibility(Visibility.ONLINE);
+                //run keepalive thread
+                keepAliveThread = new KeepAliveThread();
+                keepAliveThread.start();
 
-            //init debug logging
-            skype.getEventDispatcher().registerListener(new Listener() {
-                @EventHandler
-                public void onMessage(MessageReceivedEvent e) {
-                    final ReceivedMessage message = e.getMessage();
-                    final Chat chat = message.getChat();
-                    final MessageContext ctx = new MessageContext(AdmBot.this, chat, message);
+                skype.setVisibility(Visibility.ONLINE);
 
-                    processors.stream()
-                            .filter(processor -> processor.needToProcess(ctx))
-                            .forEach(processor -> processor.process(ctx));
-                }
-            });
+                //init debug logging
+                skype.getEventDispatcher().registerListener(new Listener() {
+                    @EventHandler
+                    public void onMessage(MessageReceivedEvent e) {
+                        final ReceivedMessage message = e.getMessage();
+                        final Chat chat = message.getChat();
+                        final MessageContext ctx = new MessageContext(AdmBot.this, chat, message);
 
-        } catch (ConnectionException | NotParticipatingException | InvalidCredentialsException e) {
-            log.error("error starting skype", e);
-            System.exit(1);
+                        processors.stream()
+                                .filter(processor -> processor.needToProcess(ctx))
+                                .forEach(processor -> processor.process(ctx));
+                    }
+                });
+
+            } catch (ConnectionException | NotParticipatingException | InvalidCredentialsException e) {
+                log.error("error starting skype", e);
+                System.exit(1);
+            }
+
+            //start http server
+            try {
+                server.setHandler(new NotificationHandler(this));
+                server.start();
+            } catch (Exception e) {
+                log.error("Error starting HTTP server", e);
+                System.exit(1);
+            }
+
+            log.info("Bot started");
+            this.started = true;
+        }finally {
+            lock.unlock();
         }
-
-        //start http server
-        try {
-            server.setHandler(new NotificationHandler(this));
-            server.start();
-        } catch (Exception e) {
-            log.error("Error starting HTTP server", e);
-            System.exit(1);
-        }
-
-        log.info("Bot started");
-        this.started = true;
     }
 
     public void sendMessage(String msg) {
@@ -113,40 +122,50 @@ public class AdmBot {
                 sendMessage(getChat(group), msg);
                 return true;
             } catch (ChatNotFoundException | ConnectionException e) {
-                log.error("Error initializing bot");
+                log.error("Error sending message", e);
                 return false;
             }
         }
-
         return false;
     }
 
-    public void sendMessage(Chat chat, String msg) {
+    void sendMessage(Chat chat, String msg) {
+        lock.lock();
         try {
-            chat.sendMessage(msg);
-        } catch (ConnectionException e) {
-            log.warn("Cant send message to chat", e);
+            try {
+                chat.sendMessage(msg);
+            } catch (ConnectionException e) {
+                log.warn("Cant send message to chat", e);
+            }
+        } finally {
+            lock.unlock();
         }
+
     }
 
-    public void stop() {
-        if (started) {
-            log.info("Stopping bot");
-            keepAliveThread.interrupt();
+    void stop() {
+        lock.lock();
+        try {
+            if (started) {
+                log.info("Stopping bot");
+                keepAliveThread.interrupt();
 
-            try {
-                skype.setVisibility(Visibility.AWAY);
-                skype.logout();
-            } catch (ConnectionException e) {
-                log.error("error logging out from skype", e);
-            }
+                try {
+                    skype.setVisibility(Visibility.AWAY);
+                    skype.logout();
+                } catch (ConnectionException e) {
+                    log.error("error logging out from skype", e);
+                }
 
-            try {
-                server.stop();
-            } catch (Exception e) {
-                log.error("error stopping http server", e);
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    log.error("error stopping http server", e);
+                }
+                started = false;
             }
-            started = false;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -170,6 +189,7 @@ public class AdmBot {
                     skype.setVisibility(Visibility.ONLINE);
                 } catch (ConnectionException e) {
                     log.warn("Error sending keep alive", e);
+                    restart();
                 }
                 try {
                     Thread.sleep(KEEPALIVE_INTERVAL_MS);
@@ -177,6 +197,16 @@ public class AdmBot {
                     interrupt();
                 }
             }
+        }
+    }
+
+    private void restart() {
+        lock.lock();
+        try {
+            stop();
+            run();
+        }finally {
+            lock.unlock();
         }
     }
 
