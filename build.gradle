@@ -41,8 +41,6 @@ dependencies {
 
     //SKYPE API
     compile 'com.samczsun:skype4j:0.1.5'
-
-    //compile 'net.sourceforge.jtds:jtds:1.3.1'
     compile 'commons-cli:commons-cli:1.3.1'
 
     //Jetty
@@ -51,9 +49,5 @@ dependencies {
     compile 'org.eclipse.jetty:jetty-jsp:+'
     compile 'org.eclipse.jetty:jetty-annotations:+'
 
-    // Declare the dependency for your favourite test framework you want to use in your tests.
-    // TestNG is also supported by the Gradle Test task. Just change the
-    // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
-    // 'test.useTestNG()' to your build script.
     testCompile 'junit:junit:4.12'
 }

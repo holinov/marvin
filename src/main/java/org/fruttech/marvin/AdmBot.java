@@ -154,13 +154,14 @@ public class AdmBot {
                     skype.setVisibility(Visibility.AWAY);
                     skype.logout();
                 } catch (ConnectionException e) {
-                    log.error("error logging out from skype", e);
+                    log.error("Error logging out from skype", e);
+                    System.exit(1);
                 }
 
                 try {
                     server.stop();
                 } catch (Exception e) {
-                    log.error("error stopping http server", e);
+                    log.error("Error stopping http server", e);
                 }
                 started = false;
             }
