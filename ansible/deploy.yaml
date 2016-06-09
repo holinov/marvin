@@ -1,5 +1,5 @@
 ---
-- name: Deploy jar to servers
+- name: NEW Deploy jar to servers
   hosts:
   - servers
   tasks:
