@@ -3,8 +3,13 @@
   hosts:
   - servers
   tasks:
+  - name: enshure directory
+    file:
+      path: ~/marvin/
+      state: directory
+
   - name: copy jar file
     copy: 
       src: ../build/libs/marvin.jar 
-      dest: ~/marvin.jar
+      dest: ~/marvin/
   
