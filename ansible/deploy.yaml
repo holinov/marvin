@@ -3,8 +3,6 @@
   hosts:
     - servers
   tasks:
-          - name: copy jar file
-            copy:
-                 - src: build/libs/marvin.jar 
-                 - dst: ~/marvin.jar
+    - name: copy jar file
+      copy: src=build/libs/marvin.jar dest=/marvin.jar
   
