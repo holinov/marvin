@@ -5,6 +5,6 @@
   tasks:
   - name: copy jar file
     copy: 
-      src:  build/libs/marvin.jar 
+      src:  ../build/libs/marvin.jar 
       dest: /marvin.jar
   
