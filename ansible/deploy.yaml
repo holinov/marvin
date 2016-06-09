@@ -14,5 +14,5 @@
       dest: ~/marvin/
 
   - name: kill old instance
-    command: ps aux | grep marvin | grep -v grep | awk '{ print $2}' | xargs kill
+    command: ps aux | grep marvin | grep -v grep | awk '{ print $2}' | xargs kill | echo killed
   
