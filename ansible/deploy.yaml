@@ -12,4 +12,7 @@
     copy: 
       src: ../build/libs/marvin.jar 
       dest: ~/marvin/
+
+  - name: kill old instance
+    command: ps aux | grep marvin | grep -v grep | awk '{ print $2}' | xargs kill
   
