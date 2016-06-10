@@ -5,10 +5,10 @@
   tasks:
   - name: enshure directory
     file:
-      path: ~/marvin/
+      path: {{ installPath }}
       state: directory
 
   - name: copy jar file
     copy: 
       src: ../build/libs/marvin.jar 
-      dest: ~/marvin/
+      dest: {{ installPath }}
