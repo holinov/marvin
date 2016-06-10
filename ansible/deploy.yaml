@@ -4,11 +4,15 @@
   - servers
   tasks:
   - name: enshure directory
+    become: yes
+    become_method: sudo
     file:
       path: "{{ installPath }}"
       state: directory
 
   - name: copy jar file
+    become: yes
+    become_method: sudo
     copy: 
       src: ../build/libs/marvin.jar 
       dest: "{{ installPath }}"
